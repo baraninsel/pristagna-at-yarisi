@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏇 Pristagna At Yarışı</title>
+    <meta name="description" content="Kick yayıncı-izleyici etkileşimli at yarışı bahis platformu">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Matter.js fizik motoru -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <!-- Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <!-- Arka plan katmanı -->
+    <div id="bg-layer"></div>
+
+    <!-- Parçacık efekti -->
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- Parkur çizim katmanı -->
+    <canvas id="track-canvas"></canvas>
+
+    <!-- Oyun canvas katmanı -->
+    <div id="game-container"></div>
+
+    <!-- UI katmanı -->
+    <div id="ui-layer">
+
+        <!-- Üst bar: Logo + Kick durumu + Yarış durumu -->
+        <div class="top-bar">
+            <div class="logo-area">
+                <span class="logo-icon">🏇</span>
+                <span class="logo-text">PRISTAGNA</span>
+                <span class="logo-sub">AT YARIŞI</span>
+            </div>
+            <div class="race-status-area">
+                <div id="race-status" class="race-status">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Bekleniyor...</span>
+                </div>
+                <div id="timer-display" class="timer-display" style="display:none;">
+                    <span class="timer-label">SÜRE</span>
+                    <span id="timer-value" class="timer-value">30</span>
+                </div>
+            </div>
+            <div class="kick-status" id="kick-status">
+                <span class="kick-dot offline"></span>
+                <span class="kick-text">Kick Bağlanıyor...</span>
+            </div>
+        </div>
+
+        <!-- Sol panel: Bahis listesi -->
+        <div class="side-panel left-panel">
+            <div class="panel-header">
+                <span class="panel-icon">🎰</span>
+                <span>CANLI BAHİSLER</span>
+            </div>
+            <ul id="bet-list" class="bet-list">
+                <!-- Bahisler dinamik olarak eklenecek -->
+            </ul>
+            <div class="panel-footer" id="pool-info">
+                <div class="pool-label">TOPLAM HAVUZ</div>
+                <div class="pool-amount" id="total-pool">0</div>
+            </div>
+        </div>
+
+        <!-- Sağ panel: Karakter oranları -->
+        <div class="side-panel right-panel">
+            <div class="panel-header">
+                <span class="panel-icon">📊</span>
+                <span>ORANLAR</span>
+            </div>
+            <div id="odds-panel" class="odds-panel">
+                <div class="odds-item" data-char="A">
+                    <div class="odds-color" style="background: var(--char-a);"></div>
+                    <span class="odds-name">A</span>
+                    <div class="odds-bar-container">
+                        <div class="odds-bar" id="odds-bar-A" style="width: 0%"></div>
+                    </div>
+                    <span class="odds-percent" id="odds-pct-A">0%</span>
+                </div>
+                <div class="odds-item" data-char="B">
+                    <div class="odds-color" style="background: var(--char-b);"></div>
+                    <span class="odds-name">B</span>
+                    <div class="odds-bar-container">
+                        <div class="odds-bar" id="odds-bar-B" style="width: 0%"></div>
+                    </div>
+                    <span class="odds-percent" id="odds-pct-B">0%</span>
+                </div>
+                <div class="odds-item" data-char="C">
+                    <div class="odds-color" style="background: var(--char-c);"></div>
+                    <span class="odds-name">C</span>
+                    <div class="odds-bar-container">
+                        <div class="odds-bar" id="odds-bar-C" style="width: 0%"></div>
+                    </div>
+                    <span class="odds-percent" id="odds-pct-C">0%</span>
+                </div>
+                <div class="odds-item" data-char="D">
+                    <div class="odds-color" style="background: var(--char-d);"></div>
+                    <span class="odds-name">D</span>
+                    <div class="odds-bar-container">
+                        <div class="odds-bar" id="odds-bar-D" style="width: 0%"></div>
+                    </div>
+                    <span class="odds-percent" id="odds-pct-D">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alt merkez: Komut bilgisi -->
+        <div class="bottom-bar">
+            <div class="command-info" id="command-info">
+                <span class="cmd-prefix">Chat'e yaz:</span>
+                <code class="cmd-example">!sp A 100</code>
+                <span class="cmd-desc">A karakterine 100 puan bahis yap</span>
+            </div>
+        </div>
+
+        <!-- Geri sayım overlay -->
+        <div id="countdown-overlay" class="countdown-overlay" style="display:none;">
+            <div class="countdown-number" id="countdown-number">3</div>
+        </div>
+
+        <!-- Kazanan overlay -->
+        <div id="winner-overlay" class="winner-overlay" style="display:none;">
+            <div class="winner-content">
+                <div class="winner-crown">👑</div>
+                <div class="winner-title">KAZANAN</div>
+                <div class="winner-char" id="winner-char">A</div>
+                <div class="winner-details" id="winner-details"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "kick-at-yarisi",
+  "version": "1.0.0",
+  "description": "Kick yayıncı-izleyici etkileşimli at yarışı bahis platformu",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.1",
+    "kick-live-connector": "^1.0.0",
+    "multer": "^1.4.5-lts.2",
+    "socket.io": "^4.8.1",
+    "sqlite3": "^5.1.7"
+  }
+}

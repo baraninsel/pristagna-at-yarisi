@@ -1,0 +1,24 @@
+# Dependency directories
+node_modules/
+
+# Local databases
+database.sqlite
+
+# Uploads directory contents but keep the directory
+uploads/*
+!uploads/.gitkeep
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Separate git repositories
+agency-agents/

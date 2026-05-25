@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏇 Pristagna — Yayıncı Paneli</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root {
+            --bg: #0a0a12;
+            --bg-card: #12121f;
+            --bg-glass: rgba(255,255,255,0.04);
+            --kick: #53fc18;
+            --kick-dim: rgba(83,252,24,0.12);
+            --kick-glow: rgba(83,252,24,0.3);
+            --pink: #ff3366;
+            --blue: #33ccff;
+            --yellow: #ffcc00;
+            --text: #f0f0f5;
+            --text-dim: rgba(240,240,245,0.5);
+            --border: rgba(255,255,255,0.06);
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .admin-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .admin-title {
+            display: flex; align-items: center; gap: 12px;
+        }
+
+        .admin-title h1 {
+            font-size: 1.6rem; font-weight: 800;
+            background: linear-gradient(135deg, var(--kick), #a0ff60);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .admin-title span { font-size: 2rem; }
+
+        .back-link {
+            color: var(--text-dim); text-decoration: none;
+            padding: 8px 16px; border: 1px solid var(--border);
+            border-radius: 8px; font-size: 0.85rem; transition: all 0.2s;
+        }
+        .back-link:hover { background: var(--bg-glass); color: var(--text); }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+        }
+
+        .card-header {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 0.75rem; font-weight: 700;
+            letter-spacing: 2px; text-transform: uppercase;
+            color: var(--text-dim); margin-bottom: 20px;
+            padding-bottom: 12px; border-bottom: 1px solid var(--border);
+        }
+        .card-header span { font-size: 1.1rem; }
+
+        /* Butonlar */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 8px; padding: 12px 24px; border: none; border-radius: 8px;
+            font-family: 'Outfit', sans-serif; font-weight: 700;
+            font-size: 0.9rem; cursor: pointer; transition: all 0.2s;
+            letter-spacing: 1px; text-transform: uppercase;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--kick), #3dcc10);
+            color: #000; box-shadow: 0 4px 16px var(--kick-glow);
+        }
+        .btn-primary:hover { box-shadow: 0 6px 24px var(--kick-glow); }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--pink), #cc1040);
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background: var(--bg-glass); color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.08); }
+
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        /* Status badge */
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 14px; border-radius: 100px;
+            font-size: 0.8rem; font-weight: 600;
+            background: var(--bg-glass); border: 1px solid var(--border);
+        }
+        .status-badge .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+        }
+        .status-badge .dot.green { background: var(--kick); box-shadow: 0 0 6px var(--kick-glow); }
+        .status-badge .dot.red { background: var(--pink); box-shadow: 0 0 6px rgba(255,51,102,0.4); }
+        .status-badge .dot.yellow { background: var(--yellow); box-shadow: 0 0 6px rgba(255,204,0,0.4); }
+
+        /* Inputs */
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; font-size: 0.75rem; font-weight: 600;
+            color: var(--text-dim); margin-bottom: 6px;
+            letter-spacing: 1px; text-transform: uppercase;
+        }
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px 14px; background: var(--bg);
+            border: 1px solid var(--border); border-radius: 8px;
+            color: var(--text); font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--kick);
+        }
+
+        /* File upload */
+        .file-upload {
+            border: 2px dashed var(--border); border-radius: var(--radius);
+            padding: 24px; text-align: center; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .file-upload:hover { border-color: var(--kick); background: var(--kick-dim); }
+        .file-upload input { display: none; }
+        .file-upload .icon { font-size: 2rem; margin-bottom: 8px; }
+        .file-upload .text { color: var(--text-dim); font-size: 0.85rem; }
+
+        /* Preview */
+        .bg-preview {
+            width: 100%; height: 120px; border-radius: 8px;
+            background-size: cover; background-position: center;
+            border: 1px solid var(--border); margin-top: 12px;
+            display: none;
+        }
+
+        /* Stats */
+        .stat-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid var(--border);
+        }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: var(--text-dim); font-size: 0.85rem; }
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700; color: var(--kick);
+        }
+
+        /* Leaderboard */
+        .lb-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 12px; margin-bottom: 4px;
+            background: var(--bg-glass); border-radius: 8px;
+        }
+        .lb-rank {
+            width: 28px; height: 28px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 0.8rem; flex-shrink: 0;
+        }
+        .lb-rank.gold { background: rgba(255,204,0,0.2); color: var(--yellow); }
+        .lb-rank.silver { background: rgba(192,192,192,0.2); color: #c0c0c0; }
+        .lb-rank.bronze { background: rgba(205,127,50,0.2); color: #cd7f32; }
+        .lb-rank.normal { background: var(--bg-glass); color: var(--text-dim); }
+        .lb-name { flex: 1; font-weight: 600; }
+        .lb-balance { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--kick); }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            padding: 12px 20px; border-radius: 8px;
+            background: var(--bg-card); border: 1px solid var(--kick);
+            color: var(--kick); font-weight: 600; font-size: 0.85rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            transform: translateY(100px); opacity: 0; transition: all 0.3s;
+            z-index: 1000;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+
+        /* Range Sliders */
+        .form-group input[type="range"] {
+            width: 100%; height: 6px; -webkit-appearance: none; appearance: none;
+            background: linear-gradient(90deg, var(--kick-dim), var(--kick));
+            border-radius: 3px; outline: none; cursor: pointer;
+            margin: 8px 0 4px;
+        }
+        .form-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: var(--kick); border: 2px solid #000;
+            box-shadow: 0 0 8px var(--kick-glow);
+            cursor: pointer; transition: transform 0.15s;
+        }
+        .form-group input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        .form-group input[type="range"]::-moz-range-thumb {
+            width: 18px; height: 18px; border-radius: 50%;
+            background: var(--kick); border: 2px solid #000;
+            box-shadow: 0 0 8px var(--kick-glow); cursor: pointer;
+        }
+
+        .slider-val {
+            float: right; font-family: 'JetBrains Mono', monospace;
+            font-weight: 700; color: var(--kick); font-size: 0.8rem;
+        }
+
+        .range-labels {
+            display: flex; justify-content: space-between;
+            font-size: 0.65rem; color: var(--text-dim);
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="admin-header">
+    <div class="admin-title">
+        <span>🏇</span>
+        <h1>Pristagna Yayıncı Paneli</h1>
+    </div>
+    <a href="/" class="back-link">← Oyuna Dön</a>
+</div>
+
+<div class="grid">
+
+    <!-- Yarış Kontrolü -->
+    <div class="card">
+        <div class="card-header"><span>🎮</span> YARIŞ KONTROLÜ</div>
+        <div style="margin-bottom: 16px;">
+            <span class="status-badge" id="game-status">
+                <span class="dot yellow"></span>
+                <span id="game-status-text">Bekleniyor</span>
+            </span>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-primary" id="btn-start" onclick="startRace()">▶ Yarışı Başlat</button>
+            <button class="btn btn-danger" id="btn-stop" onclick="stopRace()">⏹ Durdur</button>
+        </div>
+        <div class="btn-group" style="margin-top: 10px;">
+            <button class="btn btn-secondary" id="btn-instant" onclick="instantStart()" title="Bahis süresini atlayıp direkt geri sayıma geç">⚡ Anında Başlat</button>
+            <button class="btn btn-secondary" id="btn-skip-countdown" onclick="skipCountdown()" title="Geri sayımı atlayıp direkt yarışı başlat">⏩ Sayımı Atla</button>
+        </div>
+        <div style="margin-top: 16px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;">
+                <input type="checkbox" id="auto-mode" checked onchange="toggleAuto()">
+                Otomatik döngü modu
+            </label>
+        </div>
+    </div>
+
+    <!-- Kick Bağlantısı -->
+    <div class="card">
+        <div class="card-header"><span>📡</span> KICK BAĞLANTISI</div>
+        <div style="margin-bottom: 16px;">
+            <span class="status-badge" id="kick-badge">
+                <span class="dot red" id="kick-dot"></span>
+                <span id="kick-text">Bağlanıyor...</span>
+            </span>
+        </div>
+        <div class="form-group">
+            <label>Kick Kanal Adı</label>
+            <input type="text" id="kick-channel" placeholder="pristagna">
+        </div>
+        <div class="form-group">
+            <label>Chatroom ID <span style="font-size:0.65rem;color:var(--text-dim);text-transform:none;letter-spacing:0;">(Otomatik algılanır, boş bırakabilirsiniz)</span></label>
+            <input type="text" id="kick-chatroom-id" placeholder="Otomatik">
+        </div>
+        <button class="btn btn-secondary" onclick="saveChannel()">Kanalı Kaydet</button>
+        <button class="btn btn-secondary" style="margin-top:8px;" onclick="reconnectKick()">🔄 Kick Yeniden Bağlan</button>
+    </div>
+
+    <!-- Ayarlar -->
+    <div class="card">
+        <div class="card-header"><span>⚙️</span> OYUN AYARLARI</div>
+        <div class="form-group">
+            <label>Başlangıç Bakiyesi</label>
+            <input type="number" id="set-starting-balance" value="100" min="1">
+        </div>
+        <div class="form-group">
+            <label>Bahis Süresi (saniye)</label>
+            <input type="number" id="set-bet-duration" value="30" min="5" max="120">
+        </div>
+        <div class="form-group">
+            <label>Min. Bahis</label>
+            <input type="number" id="set-min-bet" value="1" min="1">
+        </div>
+        <div class="form-group">
+            <label>Maks. Bahis</label>
+            <input type="number" id="set-max-bet" value="1000" min="1">
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()">💾 Ayarları Kaydet</button>
+    </div>
+
+    <!-- Arka Plan -->
+    <div class="card">
+        <div class="card-header"><span>🖼️</span> ARKA PLAN</div>
+        <div class="file-upload" id="bg-upload" onclick="document.getElementById('bg-file').click()">
+            <input type="file" id="bg-file" accept="image/*" onchange="uploadBackground()">
+            <div class="icon">📁</div>
+            <div class="text">Arka plan resmi yükle (JPG, PNG, GIF, WebP)</div>
+        </div>
+        <div class="bg-preview" id="bg-preview"></div>
+    </div>
+
+    <!-- Yarış Fiziği Ayarları -->
+    <div class="card">
+        <div class="card-header"><span>⚡</span> YARIŞ FİZİĞİ</div>
+        <div class="physics-info" style="font-size:0.75rem;color:var(--text-dim);margin-bottom:16px;padding:8px 12px;background:var(--bg-glass);border-radius:8px;">
+            💡 Bu ayarlar topların yarış sırasındaki hızını, kuvvetini ve davranışını kontrol eder. Değişiklikler sonraki yarışta geçerli olur.
+        </div>
+
+        <div class="form-group">
+            <label>Top İlk Kuvveti <span class="slider-val" id="val-ball-force">0.030</span></label>
+            <input type="range" id="gs-ball-force" min="0.005" max="0.1" step="0.001" value="0.03" oninput="updateSliderVal('ball-force', this.value)">
+            <div class="range-labels"><span>Yavaş</span><span>Hızlı</span></div>
+        </div>
+
+        <div class="form-group">
+            <label>Min. Hız <span class="slider-val" id="val-ball-speed-min">2.5</span></label>
+            <input type="range" id="gs-ball-speed-min" min="0.5" max="8" step="0.1" value="2.5" oninput="updateSliderVal('ball-speed-min', this.value)">
+            <div class="range-labels"><span>0.5</span><span>8.0</span></div>
+        </div>
+
+        <div class="form-group">
+            <label>Maks. Hız <span class="slider-val" id="val-ball-speed-max">10.0</span></label>
+            <input type="range" id="gs-ball-speed-max" min="3" max="20" step="0.5" value="10" oninput="updateSliderVal('ball-speed-max', this.value)">
+            <div class="range-labels"><span>3</span><span>20</span></div>
+        </div>
+
+        <div class="form-group">
+            <label>Hava Sürtünmesi <span class="slider-val" id="val-ball-friction-air">0.004</span></label>
+            <input type="range" id="gs-ball-friction-air" min="0" max="0.05" step="0.001" value="0.004" oninput="updateSliderVal('ball-friction-air', this.value)">
+            <div class="range-labels"><span>Kaygan</span><span>Ağır</span></div>
+        </div>
+
+        <div class="form-group">
+            <label>Sekme Katsayısı <span class="slider-val" id="val-ball-restitution">1.05</span></label>
+            <input type="range" id="gs-ball-restitution" min="0.3" max="1.5" step="0.05" value="1.05" oninput="updateSliderVal('ball-restitution', this.value)">
+            <div class="range-labels"><span>Ölü</span><span>Zıplak</span></div>
+        </div>
+
+        <div class="form-group">
+            <label>Sıkışma İtme Kuvveti <span class="slider-val" id="val-unstuck-force">0.012</span></label>
+            <input type="range" id="gs-unstuck-force" min="0.005" max="0.05" step="0.001" value="0.012" oninput="updateSliderVal('unstuck-force', this.value)">
+            <div class="range-labels"><span>Hafif</span><span>Güçlü</span></div>
+        </div>
+
+        <div class="btn-group" style="margin-top:12px;">
+            <button class="btn btn-primary" onclick="saveGameSettings()">💾 Fizik Kaydet</button>
+            <button class="btn btn-secondary" onclick="resetPhysicsDefaults()">↩ Varsayılan</button>
+        </div>
+    </div>
+
+    <!-- Zamanlama Ayarları -->
+    <div class="card">
+        <div class="card-header"><span>⏱️</span> ZAMANLAMA</div>
+
+        <div class="form-group">
+            <label>Bahis Süresi <span class="slider-val" id="val-bet-duration">30 sn</span></label>
+            <input type="range" id="gs-bet-duration" min="5" max="120" step="5" value="30" oninput="updateSliderVal('bet-duration', this.value + ' sn')">
+            <div class="range-labels"><span>5sn</span><span>120sn</span></div>
+        </div>
+
+        <div class="form-group">
+            <label>Geri Sayım <span class="slider-val" id="val-countdown-duration">5 sn</span></label>
+            <input type="range" id="gs-countdown-duration" min="3" max="10" step="1" value="5" oninput="updateSliderVal('countdown-duration', this.value + ' sn')">
+            <div class="range-labels"><span>3sn</span><span>10sn</span></div>
+        </div>
+
+        <div class="form-group">
+            <label>Yarış Timeout <span class="slider-val" id="val-race-timeout">120 sn</span></label>
+            <input type="range" id="gs-race-timeout" min="30" max="600" step="10" value="120" oninput="updateSliderVal('race-timeout', this.value + ' sn')">
+            <div class="range-labels"><span>30sn</span><span>600sn (10dk)</span></div>
+        </div>
+
+        <div class="form-group">
+            <label>Sonuç Gösterim Süresi <span class="slider-val" id="val-result-duration">10 sn</span></label>
+            <input type="range" id="gs-result-duration" min="3" max="30" step="1" value="10" oninput="updateSliderVal('result-duration', this.value + ' sn')">
+            <div class="range-labels"><span>3sn</span><span>30sn</span></div>
+        </div>
+
+        <div class="btn-group" style="margin-top:12px;">
+            <button class="btn btn-primary" onclick="saveTimingSettings()">💾 Zamanlama Kaydet</button>
+            <button class="btn btn-secondary" onclick="resetTimingDefaults()">↩ Varsayılan</button>
+        </div>
+    </div>
+
+    <!-- Canlı İstatistikler -->
+    <div class="card">
+        <div class="card-header"><span>📊</span> CANLI İSTATİSTİKLER</div>
+        <div class="stat-row">
+            <span class="stat-label">Aktif Yarış</span>
+            <span class="stat-value" id="stat-race">-</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Toplam Bahis Havuzu</span>
+            <span class="stat-value" id="stat-pool">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Bahis Sayısı</span>
+            <span class="stat-value" id="stat-bets">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Kick Durumu</span>
+            <span class="stat-value" id="stat-kick">❌</span>
+        </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="card">
+        <div class="card-header"><span>🏆</span> SIRALAMA</div>
+        <div id="leaderboard">
+            <div style="color:var(--text-dim);font-size:0.85rem;text-align:center;padding:20px;">
+                Yükleniyor...
+            </div>
+        </div>
+        <button class="btn btn-secondary" style="margin-top:12px;width:100%;" onclick="loadLeaderboard()">🔄 Yenile</button>
+    </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const socket = io();
+
+// ═══════════════════════════════════
+// YARIŞKONTROLÜ
+// ═══════════════════════════════════
+
+function startRace() {
+    socket.emit('admin_start_race');
+    showToast('Yarış başlatılıyor...');
+}
+
+function stopRace() {
+    socket.emit('admin_stop_race');
+    showToast('Yarış durduruldu.');
+}
+
+function toggleAuto() {
+    const enabled = document.getElementById('auto-mode').checked;
+    socket.emit('admin_toggle_auto', { enabled });
+    showToast(enabled ? 'Otomatik mod açık' : 'Otomatik mod kapalı');
+}
+
+function instantStart() {
+    socket.emit('admin_instant_start');
+    showToast('⚡ Bahis süresi atlanıyor, geri sayım başlıyor...');
+}
+
+function skipCountdown() {
+    socket.emit('admin_skip_countdown');
+    showToast('⏩ Geri sayım atlanıyor, yarış başlıyor...');
+}
+
+// ═══════════════════════════════════
+// AYARLAR
+// ═══════════════════════════════════
+
+async function loadSettings() {
+    try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        if (data.settings) {
+            document.getElementById('set-starting-balance').value = data.settings.starting_balance || 100;
+            document.getElementById('set-bet-duration').value = data.settings.bet_duration || 30;
+            document.getElementById('set-min-bet').value = data.settings.min_bet || 1;
+            document.getElementById('set-max-bet').value = data.settings.max_bet || 1000;
+            document.getElementById('kick-channel').value = data.settings.kick_channel || 'pristagna';
+            document.getElementById('kick-chatroom-id').value = data.settings.kick_chatroom_id || '';
+
+            if (data.settings.background_image) {
+                const preview = document.getElementById('bg-preview');
+                preview.style.backgroundImage = `url(${data.settings.background_image})`;
+                preview.style.display = 'block';
+            }
+        }
+    } catch (e) {
+        console.error('Ayarlar yüklenemedi:', e);
+    }
+}
+
+async function saveSettings() {
+    const settings = {
+        starting_balance: document.getElementById('set-starting-balance').value,
+        bet_duration: document.getElementById('set-bet-duration').value,
+        min_bet: document.getElementById('set-min-bet').value,
+        max_bet: document.getElementById('set-max-bet').value
+    };
+
+    for (const [key, value] of Object.entries(settings)) {
+        await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key, value })
+        });
+    }
+
+    showToast('Ayarlar kaydedildi! ✓');
+}
+
+async function saveChannel() {
+    const channel = document.getElementById('kick-channel').value.trim();
+    const chatroomId = document.getElementById('kick-chatroom-id').value.trim();
+    if (!channel) return;
+
+    await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'kick_channel', value: channel })
+    });
+
+    await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'kick_chatroom_id', value: chatroomId })
+    });
+
+    showToast('Kanal kaydedildi! "Kick Yeniden Bağlan" butonuna basın.');
+}
+
+async function uploadBackground() {
+    const fileInput = document.getElementById('bg-file');
+    if (!fileInput.files[0]) return;
+
+    const formData = new FormData();
+    formData.append('background', fileInput.files[0]);
+
+    try {
+        const res = await fetch('/api/upload-background', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            const preview = document.getElementById('bg-preview');
+            preview.style.backgroundImage = `url(${data.image})`;
+            preview.style.display = 'block';
+            showToast('Arka plan güncellendi! ✓');
+        }
+    } catch (e) {
+        showToast('Yükleme hatası!');
+    }
+}
+
+// ═══════════════════════════════════
+// LEADERBOARD
+// ═══════════════════════════════════
+
+async function loadLeaderboard() {
+    try {
+        const res = await fetch('/api/leaderboard');
+        const data = await res.json();
+        const container = document.getElementById('leaderboard');
+
+        if (!data.leaderboard || data.leaderboard.length === 0) {
+            container.innerHTML = '<div style="color:var(--text-dim);font-size:0.85rem;text-align:center;padding:20px;">Henüz kullanıcı yok</div>';
+            return;
+        }
+
+        container.innerHTML = data.leaderboard.map((user, i) => {
+            const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : 'normal';
+            return `
+                <div class="lb-item">
+                    <div class="lb-rank ${rankClass}">${i + 1}</div>
+                    <div class="lb-name">${user.username}</div>
+                    <div class="lb-balance">${user.balance}</div>
+                </div>
+            `;
+        }).join('');
+    } catch (e) {
+        console.error('Leaderboard yüklenemedi:', e);
+    }
+}
+
+// ═══════════════════════════════════
+// SOCKET EVENTS
+// ═══════════════════════════════════
+
+const statusMap = {
+    idle: { text: 'Bekleniyor', dotClass: 'yellow' },
+    betting: { text: 'Bahisler Açık', dotClass: 'green' },
+    countdown: { text: 'Geri Sayım', dotClass: 'yellow' },
+    racing: { text: 'Yarış Devam', dotClass: 'green' },
+    finished: { text: 'Bitti', dotClass: 'yellow' }
+};
+
+socket.on('game_state', (state) => {
+    const info = statusMap[state.status] || statusMap.idle;
+    document.getElementById('game-status-text').textContent = info.text;
+    const dot = document.querySelector('#game-status .dot');
+    dot.className = 'dot ' + info.dotClass;
+
+    document.getElementById('stat-race').textContent = state.currentRaceId || '-';
+    document.getElementById('stat-bets').textContent = state.bets ? state.bets.length : 0;
+
+    document.getElementById('auto-mode').checked = !!state.autoMode;
+
+    const startBtn = document.getElementById('btn-start');
+    const instantBtn = document.getElementById('btn-instant');
+    const skipBtn = document.getElementById('btn-skip-countdown');
+    startBtn.disabled = state.status !== 'idle';
+    instantBtn.disabled = state.status !== 'betting';
+    skipBtn.disabled = state.status !== 'countdown';
+});
+
+socket.on('new_bet', (data) => {
+    const poolEl = document.getElementById('stat-pool');
+    if (data.betSummary && data.betSummary.totalPool) {
+        poolEl.textContent = data.betSummary.totalPool;
+    }
+    document.getElementById('stat-bets').textContent =
+        parseInt(document.getElementById('stat-bets').textContent) + 1;
+});
+
+socket.on('kick_status', (data) => {
+    const kickDot = document.getElementById('kick-dot');
+    const kickText = document.getElementById('kick-text');
+    const statKick = document.getElementById('stat-kick');
+
+    if (data.connected) {
+        kickDot.className = 'dot green';
+        kickText.textContent = 'Bağlı ✓';
+        statKick.textContent = '✅';
+    } else {
+        kickDot.className = 'dot red';
+        kickText.textContent = 'Bağlı Değil';
+        statKick.textContent = '❌';
+    }
+});
+
+socket.on('race_result', () => {
+    document.getElementById('stat-pool').textContent = '0';
+    document.getElementById('stat-bets').textContent = '0';
+    loadLeaderboard();
+});
+
+// ═══════════════════════════════════
+// OYUN AYARLARI
+// ═══════════════════════════════════
+
+function updateSliderVal(name, value) {
+    document.getElementById(`val-${name}`).textContent = value;
+}
+
+async function loadGameSettings() {
+    try {
+        const res = await fetch('/api/game-settings');
+        const data = await res.json();
+        if (data.settings) {
+            const s = data.settings;
+            setSlider('ball-force', s.ball_force, s.ball_force);
+            setSlider('ball-speed-min', s.ball_speed_min, s.ball_speed_min);
+            setSlider('ball-speed-max', s.ball_speed_max, s.ball_speed_max);
+            setSlider('ball-friction-air', s.ball_friction_air, s.ball_friction_air);
+            setSlider('ball-restitution', s.ball_restitution, s.ball_restitution);
+            setSlider('unstuck-force', s.unstuck_force, s.unstuck_force);
+            setSlider('bet-duration', s.bet_duration, s.bet_duration + ' sn');
+            setSlider('countdown-duration', s.countdown_duration, s.countdown_duration + ' sn');
+            setSlider('race-timeout', s.race_timeout, s.race_timeout + ' sn');
+            setSlider('result-duration', s.result_duration, s.result_duration + ' sn');
+        }
+    } catch (e) {
+        console.error('Oyun ayarları yüklenemedi:', e);
+    }
+}
+
+function setSlider(name, value, displayVal) {
+    const el = document.getElementById(`gs-${name}`);
+    if (el) el.value = value;
+    const valEl = document.getElementById(`val-${name}`);
+    if (valEl) valEl.textContent = displayVal;
+}
+
+async function saveGameSettings() {
+    const settings = {
+        ball_force: parseFloat(document.getElementById('gs-ball-force').value),
+        ball_speed_min: parseFloat(document.getElementById('gs-ball-speed-min').value),
+        ball_speed_max: parseFloat(document.getElementById('gs-ball-speed-max').value),
+        ball_friction_air: parseFloat(document.getElementById('gs-ball-friction-air').value),
+        ball_restitution: parseFloat(document.getElementById('gs-ball-restitution').value),
+        unstuck_force: parseFloat(document.getElementById('gs-unstuck-force').value)
+    };
+
+    await fetch('/api/game-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings })
+    });
+
+    showToast('Fizik ayarları kaydedildi! ✓');
+}
+
+async function saveTimingSettings() {
+    const settings = {
+        bet_duration: parseInt(document.getElementById('gs-bet-duration').value),
+        countdown_duration: parseInt(document.getElementById('gs-countdown-duration').value),
+        race_timeout: parseInt(document.getElementById('gs-race-timeout').value),
+        result_duration: parseInt(document.getElementById('gs-result-duration').value)
+    };
+
+    await fetch('/api/game-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings })
+    });
+
+    showToast('Zamanlama ayarları kaydedildi! ✓');
+}
+
+function resetPhysicsDefaults() {
+    setSlider('ball-force', 0.02, '0.020');
+    setSlider('ball-speed-min', 2.0, '2.0');
+    setSlider('ball-speed-max', 7, '7.0');
+    setSlider('ball-friction-air', 0.006, '0.006');
+    setSlider('ball-restitution', 0.85, '0.85');
+    setSlider('unstuck-force', 0.010, '0.010');
+    showToast('Fizik varsayılanlara sıfırlandı — kaydetmeyi unutmayın');
+}
+
+function resetTimingDefaults() {
+    setSlider('bet-duration', 30, '30 sn');
+    setSlider('countdown-duration', 5, '5 sn');
+    setSlider('race-timeout', 120, '120 sn');
+    setSlider('result-duration', 10, '10 sn');
+    showToast('Zamanlama varsayılanlara sıfırlandı — kaydetmeyi unutmayın');
+}
+
+// Kick yeniden bağlantı
+async function reconnectKick() {
+    try {
+        await fetch('/api/kick-reconnect', { method: 'POST' });
+        showToast('Kick yeniden bağlanma başlatıldı...');
+    } catch (e) {
+        showToast('Kick bağlantı hatası!');
+    }
+}
+
+// ═══════════════════════════════════
+// TOAST
+// ═══════════════════════════════════
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+
+loadSettings();
+loadLeaderboard();
+loadGameSettings();
+</script>
+
+</body>
+</html>
